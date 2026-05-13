@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>喝水打卡 💧</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        /* 进度环 */
+        .progress-section {
+            text-align: center;
+        }
+
+        .progress-ring {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+        }
+
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 15;
+        }
+
+        .progress-ring .bg {
+            stroke: #e0e0e0;
+        }
+
+        .progress-ring .progress {
+            stroke: #4facfe;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-text .amount {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .progress-text .goal {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        /* 成员选择 */
+        .member-select {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .member-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .member-btn:hover {
+            transform: scale(1.1);
+            border-color: #4facfe;
+        }
+
+        .member-btn.active {
+            border-color: #4facfe;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .member-btn img, .member-btn .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-bottom: 4px;
+        }
+
+        .member-btn .avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* 快捷按钮 */
+        .quick-add {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .quick-btn.btn-200 {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .quick-btn.btn-300 {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .quick-btn.btn-500 {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .quick-btn.btn-custom {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        /* 自定义输入 */
+        .custom-input {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .custom-input.show {
+            display: flex;
+        }
+
+        .custom-input input {
+            width: 120px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .custom-input input:focus {
+            outline: none;
+            border-color: #7b1fa2;
+        }
+
+        .custom-input button {
+            padding: 10px 20px;
+            background: #7b1fa2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        /* 今日排名 */
+        .ranking-section h2,
+        .trend-section h2 {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .ranking-item.highlight {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .ranking-item .rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .ranking-item .rank.gold { background: #ffd700; color: white; }
+        .ranking-item .rank.silver { background: #c0c0c0; color: white; }
+        .ranking-item .rank.bronze { background: #cd7f32; color: white; }
+
+        .ranking-item .avatar-small {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .ranking-item .name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .ranking-item .amount {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* 7天趋势图 - 按成员分组 */
+        .chart-container {
+            padding: 20px 10px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        .chart-days {
+            display: flex;
+            gap: 15px;
+            min-width: 600px;
+        }
+
+        .chart-day {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+        }
+
+        .chart-day-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .chart-members {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .chart-member {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .chart-member-avatar {
+            font-size: 0.8rem;
+        }
+
+        .chart-member-bar {
+            width: 45px;
+            height: 14px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .chart-member-bar:hover {
+            opacity: 0.8;
+        }
+
+        .chart-member-amount {
+            font-size: 0.65rem;
+            color: #999;
+            min-width: 35px;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* 日期标签 */
+        .date-header {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        /* 提示消息 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4caf50;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* 选中提示 */
+        .select-hint {
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .member-btn { width: 60px; height: 60px; }
+            .quick-btn { padding: 10px 18px; font-size: 0.9rem; }
+            .chart-member-bar { width: 35px; height: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💧 喝水打卡</h1>
+        <p class="date-header" id="dateHeader"></p>
+
+        <div class="card progress-section">
+            <div class="progress-ring">
+                <svg width="200" height="200">
+                    <circle class="bg" cx="100" cy="100" r="85"></circle>
+                    <circle class="progress" id="progressCircle" cx="100" cy="100" r="85"
+                            stroke-dasharray="534" stroke-dashoffset="534"></circle>
+                </svg>
+                <div class="progress-text">
+                    <div class="amount" id="totalAmount">0ml</div>
+                    <div class="goal">目标 2000ml</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <p class="select-hint">👇 选择你的名字开始打卡</p>
+            <div class="member-select" id="memberSelect"></div>
+
+            <div class="quick-add">
+                <button class="quick-btn btn-200" onclick="addWater(200)">+200ml</button>
+                <button class="quick-btn btn-300" onclick="addWater(300)">+300ml</button>
+                <button class="quick-btn btn-500" onclick="addWater(500)">+500ml</button>
+                <button class="quick-btn btn-custom" onclick="toggleCustom()">自定义</button>
+            </div>
+
+            <div class="custom-input" id="customInput">
+                <input type="number" id="customAmount" placeholder="输入ml数" min="1">
+                <button onclick="addCustomWater()">添加</button>
+                <button onclick="toggleCustom()" style="background: #999;">取消</button>
+            </div>
+        </div>
+
+        <div class="card ranking-section">
+            <h2>🏆 今日排名</h2>
+            <div class="ranking-list" id="rankingList"></div>
+        </div>
+
+        <div class="card trend-section">
+            <h2>📈 最近7天趋势</h2>
+            <div class="chart-container" id="chartContainer"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 成员配置
+        const members = [
+            { id: 'vickieyanwenjie', name: 'Vickie', avatar: '👩‍💼' },
+            { id: 'anxihua_v', name: 'Anxihua', avatar: '👨‍💻' },
+            { id: 'fanyang', name: 'Fanyang', avatar: '👩‍🎨' },
+            { id: 'lrzliruizhi_v', name: 'Lrzliruizhi', avatar: '👨‍🔬' },
+            { id: 'xuqiangwei', name: 'Xuqiangwei', avatar: '👨‍🎓' }
+        ];
+
+        let currentMember = null;
+
+        // 获取今日日期字符串
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // 获取存储数据
+        function getData() {
+            const data = localStorage.getItem('waterData');
+            return data ? JSON.parse(data) : {};
+        }
+
+        // 保存数据
+        function saveData(data) {
+            localStorage.setItem('waterData', JSON.stringify(data));
+        }
+
+        // 获取今日数据
+        function getTodayData() {
+            const data = getData();
+            const today = getToday();
+            return data[today] || {};
+        }
+
+        // 保存今日数据
+        function saveTodayData(todayData) {
+            const data = getData();
+            data[getToday()] = todayData;
+            saveData(data);
+        }
+
+        // 添加喝水量
+        function addWater(ml) {
+            if (!currentMember) {
+                showToast('请先选择你的名字！');
+                return;
+            }
+
+            const todayData = getTodayData();
+            todayData[currentMember] = (todayData[currentMember] || 0) + ml;
+            saveTodayData(todayData);
+
+            showToast(`+${ml}ml 记录成功！💪`);
+            updateUI();
+        }
+
+        // 显示提示
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // 切换自定义输入
+        function toggleCustom() {
+            const input = document.getElementById('customInput');
+            input.classList.toggle('show');
+            if (input.classList.contains('show')) {
+                document.getElementById('customAmount').focus();
+            }
+        }
+
+        // 添加自定义水量
+        function addCustomWater() {
+            const input = document.getElementById('customAmount');
+            const ml = parseInt(input.value);
+            if (ml > 0) {
+                addWater(ml);
+                input.value = '';
+                toggleCustom();
+            }
+        }
+
+        // 更新UI
+        function updateUI() {
+            updateDate();
+            updateProgress();
+            renderMembers();
+            updateRanking();
+            updateChart();
+        }
+
+        // 更新日期
+        function updateDate() {
+            const now = new Date();
+            const options = { weekday: 'long', month: 'long', day: 'numeric' };
+            document.getElementById('dateHeader').textContent = now.toLocaleDateString('zh-CN', options);
+        }
+
+        // 更新进度环
+        function updateProgress() {
+            const todayData = getTodayData();
+            let total = 0;
+            for (let id in todayData) {
+                total += todayData[id];
+            }
+
+            document.getElementById('totalAmount').textContent = total + 'ml';
+
+            const goal = 2000;
+            const percentage = Math.min(total / goal, 1);
+            const circumference = 2 * Math.PI * 85;
+            const offset = circumference * (1 - percentage);
+
+            document.getElementById('progressCircle').style.strokeDashoffset = offset;
+        }
+
+        // 渲染成员选择
+        function renderMembers() {
+            const container = document.getElementById('memberSelect');
+            container.innerHTML = members.map(m => `
+                <button class="member-btn ${currentMember === m.id ? 'active' : ''}"
+                        onclick="selectMember('${m.id}')">
+                    <div class="avatar">${m.avatar}</div>
+                    <span>${m.name}</span>
+                </button>
+            `).join('');
+        }
+
+        // 选择成员
+        function selectMember(id) {
+            currentMember = currentMember === id ? null : id;
+            renderMembers();
+        }
+
+        // 更新排名
+        function updateRanking() {
+            const todayData = getTodayData();
+            const rankings = members.map(m => ({
+                ...m,
+                amount: todayData[m.id] || 0
+            })).sort((a, b) => b.amount - a.amount);
+
+            const list = document.getElementById('rankingList');
+            list.innerHTML = rankings.map((m, i) => {
+                let rankClass = '';
+                if (i === 0) rankClass = 'gold';
+                else if (i === 1) rankClass = 'silver';
+                else if (i === 2) rankClass = 'bronze';
+
+                return `
+                    <div class="ranking-item ${currentMember === m.id ? 'highlight' : ''}">
+                        <div class="rank ${rankClass}">${i + 1}</div>
+                        <div class="avatar-small" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            ${m.avatar}
+                        </div>
+                        <span class="name">${m.name}</span>
+                        <span class="amount">${m.amount}ml</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 成员颜色配置
+        const memberColors = {
+            'vickieyanwenjie': '#FF6B6B',
+            'anxihua_v': '#4ECDC4',
+            'fanyang': '#45B7D1',
+            'lrzliruizhi_v': '#96CEB4',
+            'xuqiangwei': '#FFEAA7'
+        };
+
+        // 更新趋势图 - 按成员分组
+        function updateChart() {
+            const data = getData();
+            const container = document.getElementById('chartContainer');
+            const maxAmount = 2000;
+            const days = [];
+
+            // 收集最近7天的数据
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayData = data[dateStr] || {};
+
+                days.push({
+                    label: i === 0 ? '今天' : (date.getMonth() + 1) + '/' + date.getDate(),
+                    memberData: members.map(m => ({
+                        ...m,
+                        amount: dayData[m.id] || 0
+                    }))
+                });
+            }
+
+            // 渲染图表
+            let chartHTML = '<div class="chart-days">';
+
+            days.forEach(day => {
+                chartHTML += `
+                    <div class="chart-day">
+                        <div class="chart-day-label">${day.label}</div>
+                        <div class="chart-members">
+                            ${day.memberData.map(m => {
+                                const width = m.amount > 0 ? Math.max((m.amount / maxAmount) * 100, 20) : 0;
+                                return `
+                                    <div class="chart-member">
+                                        <span class="chart-member-avatar">${m.avatar}</span>
+                                        <div class="chart-member-bar"
+                                             style="width: ${width}px; background: ${memberColors[m.id]}; ${m.amount === 0 ? 'opacity: 0.3;' : ''}"
+                                             title="${m.name}: ${m.amount}ml"></div>
+                                        <span class="chart-member-amount">${m.amount > 0 ? m.amount + 'ml' : '-'}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            chartHTML += '</div>';
+
+            // 图例
+            chartHTML += '<div class="chart-legend">';
+            members.forEach(m => {
+                chartHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: ${memberColors[m.id]}"></div>
+                        <span>${m.avatar} ${m.name}</span>
+                    </div>
+                `;
+            });
+            chartHTML += '</div>';
+
+            container.innerHTML = chartHTML;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+
+            // 回车键添加自定义
+            document.getElementById('customAmount').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addCustomWater();
+            });
+        });
+
+        // 每天重置逻辑（确保新的一天数据独立）
+        setInterval(() => {
+            updateUI();
+        }, 60000);
+    </script>
+</body>
+</html>
