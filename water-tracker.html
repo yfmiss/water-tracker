@@ -485,16 +485,49 @@
             color: #666;
         }
 
-        /* MVP 徽章 */
-        .mvp-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #ffd700, #ffed4e);
+        /* 积分规则 */
+        .points-rules {
+            margin-top: 15px;
+        }
+
+        .points-rules h3 {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .points-rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .points-rule-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .points-rule-item .icon {
+            font-size: 1.2rem;
+        }
+
+        .points-rule-item .rule-text {
+            flex: 1;
+            color: #333;
+        }
+
+        .points-rule-item .points-value {
+            background: #ffd700;
             color: #333;
             padding: 2px 8px;
             border-radius: 10px;
-            font-size: 0.7rem;
             font-weight: bold;
-            margin-left: 5px;
+            font-size: 0.8rem;
         }
 
         @media (max-width: 600px) {
@@ -552,6 +585,32 @@
         <div class="card trend-section">
             <h2>📈 最近7天趋势</h2>
             <div class="chart-container" id="chartContainer"></div>
+        </div>
+
+        <div class="card points-rules">
+            <h2>🎁 积分规则</h2>
+            <div class="points-rules-list">
+                <div class="points-rule-item">
+                    <span class="icon">💧</span>
+                    <span class="rule-text">每次打卡</span>
+                    <span class="points-value">+1 积分</span>
+                </div>
+                <div class="points-rule-item">
+                    <span class="icon">🎯</span>
+                    <span class="rule-text">单日达标 (≥2000ml)</span>
+                    <span class="points-value">+5 积分</span>
+                </div>
+                <div class="points-rule-item">
+                    <span class="icon">🏆</span>
+                    <span class="rule-text">每日MVP (喝水最多)</span>
+                    <span class="points-value">+10 积分</span>
+                </div>
+                <div class="points-rule-item">
+                    <span class="icon">🏅</span>
+                    <span class="rule-text">解锁成就徽章</span>
+                    <span class="points-value">永久记录</span>
+                </div>
+            </div>
         </div>
 
         <div class="card achievements-section">
