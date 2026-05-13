@@ -530,6 +530,113 @@
             font-size: 0.8rem;
         }
 
+        /* 抽奖弹窗 */
+        .lottery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lottery-modal.show {
+            display: flex;
+        }
+
+        .lottery-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            animation: lotteryPop 0.5s ease;
+        }
+
+        @keyframes lotteryPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .lottery-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .lottery-reward {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .lottery-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .lottery-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .lottery-btn.secondary {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .lottery-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* 达标提示 */
+        .goal-reached-banner {
+            display: none;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            text-align: center;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            0% { transform: translateY(-20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .goal-reached-banner.show {
+            display: block;
+        }
+
+        .goal-reached-banner button {
+            background: white;
+            color: #0072ff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
         @media (max-width: 600px) {
             h1 { font-size: 1.8rem; }
             .member-btn { width: 60px; height: 60px; }
@@ -552,9 +659,13 @@
                 </svg>
                 <div class="progress-text">
                     <div class="amount" id="totalAmount">0ml</div>
-                    <div class="goal">目标 2000ml</div>
+                    <div class="goal" id="goalText">选择成员查看目标</div>
                     <div class="points-display" id="pointsDisplay">🏅 积分: 0</div>
                 </div>
+            </div>
+            <div class="goal-reached-banner" id="goalReachedBanner">
+                🎉 今日已达标！你是喝水达人！<br>
+                <button onclick="openLottery()">🎰 领取今日奖励</button>
             </div>
         </div>
 
@@ -606,6 +717,11 @@
                     <span class="points-value">+10 积分</span>
                 </div>
                 <div class="points-rule-item">
+                    <span class="icon">🎰</span>
+                    <span class="rule-text">达标抽奖 (每日1次)</span>
+                    <span class="points-value">职场互助奖励</span>
+                </div>
+                <div class="points-rule-item">
                     <span class="icon">🏅</span>
                     <span class="rule-text">解锁成就徽章</span>
                     <span class="points-value">永久记录</span>
@@ -620,6 +736,16 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- 抽奖弹窗 -->
+    <div class="lottery-modal" id="lotteryModal">
+        <div class="lottery-content">
+            <div class="lottery-title">🎰 达标抽奖</div>
+            <div class="lottery-reward" id="lotteryReward">正在抽奖...</div>
+            <button class="lottery-btn primary" onclick="claimReward()">收下奖励 ✨</button>
+            <button class="lottery-btn secondary" onclick="closeLottery()">稍后再说</button>
+        </div>
+    </div>
 
     <script>
         // Firebase 配置
@@ -667,6 +793,102 @@
             { id: 'total_10k', name: '💧 10升俱乐部', desc: '累计喝水超过10升', check: (allData, memberId) => getTotalAmount(allData, memberId) >= 10000 },
             { id: 'total_50k', name: '🏆 50升大师', desc: '累计喝水超过50升', check: (allData, memberId) => getTotalAmount(allData, memberId) >= 50000 },
             { id: 'mvp_once', name: '👑 单日冠军', desc: '获得过至少一次MVP', check: (allData, memberId) => checkMVPCount(allData, memberId) >= 1 }
+        ];
+
+        // 达标抽奖奖池 - 100个职场帮助同事的小事
+        const lotteryRewards = [
+            "恭喜你达标，奖励你一次Vickie帮你接水服务～ 🚰",
+            "恭喜你完成任务，奖励你一次Anxihua帮你倒垃圾服务～ 🗑️",
+            "恭喜达标，奖励你一次Fanyang帮你拿外卖服务～ 🍱",
+            "🎉 达标啦！奖励你一次Lrzliruizhi帮你带咖啡服务～ ☕",
+            "恭喜达标，奖励你一次Xuqiangwei帮你递文件服务～ 📄",
+            "达标获得奖励：Vickie帮你泡一杯热茶～ 🍵",
+            "🎯 目标达成！Anxihua帮你整理桌面服务～ 🖥️",
+            "🏆 达标奖励：Fanyang帮你拿快递服务～ 📦",
+            "🎊 今日达标！Lrzliruizhi帮你开窗通风服务～ 🌬️",
+            "💪 达标啦！Xuqiangwei帮你拿充电宝服务～ 🔋",
+            "恭喜达标，奖励你一次Vickie帮你打印文件服务～ 🖨️",
+            "🎉 达标奖励：Anxihua帮你带早餐服务～ 🥐",
+            "达标啦！Fanyang帮你浇花服务～ 🌸",
+            "🎁 达标获得：Lrzliruizhi帮你关灯服务～ 💡",
+            "恭喜你：Xuqiangwei帮你调空调温度服务～ 🌡️",
+            "🏅 达标奖励：Vickie帮你接电话服务～ 📞",
+            "🎯 目标达成：Anxihua帮你找充电线服务～ 🔌",
+            "达标啦！Fanyang帮你拿零食服务～ 🍪",
+            "🎊 今日MVP奖励：Lrzliruizhi帮你拿外套服务～ 🧥",
+            "💪 达标获得：Xuqiangwei帮你关窗帘服务～ 🪟",
+            "恭喜达标：Vickie帮你递水杯服务～ 🥤",
+            "🎉 达标奖励：Anxihua帮你送文件服务～ 📋",
+            "🏆 达标啦：Fanyang帮你拿纸巾服务～ 🧻",
+            "🎁 达标获得：Lrzliruizhi帮你关电脑服务～ 💻",
+            "恭喜达标：Xuqiangwei帮你拿纸巾服务～ 🧻",
+            "💧 喝水达标：Vickie帮你递拖鞋服务～ 👟",
+            "🎊 达标奖励：Anxihua帮你调椅子高度服务～ 🪑",
+            "🎯 今日达标：Fanyang帮你拿眼镜服务～ 👓",
+            "🏅 达标啦：Lrzliruizhi帮你递创可贴服务～ 🩹",
+            "💪 达标获得：Xuqiangwei帮你找工卡服务～ 🪪",
+            "恭喜达标：Vickie帮你调显示器亮度服务～ 🖥️",
+            "🎉 达标奖励：Anxihua帮你接杯水服务～ 🚰",
+            "🏆 达标啦：Fanyang帮你递草稿纸服务～ 📝",
+            "🎁 达标获得：Lrzliruizhi帮你关饮水机服务～ 🏺",
+            "恭喜达标：Xuqiangwei帮你开空调服务～ ❄️",
+            "💪 喝水达标：Vickie帮你拿水果服务～ 🍎",
+            "🎊 达标奖励：Anxihua帮你填表格服务～ 📋",
+            "🎯 今日达标：Fanyang帮你递话筒服务～ 🎤",
+            "🏅 达标啦：Lrzliruizhi帮你拿便签纸服务～ 📌",
+            "💪 达标获得：Xuqiangwei帮你开投影仪服务～ 📽️",
+            "恭喜达标：Vickie帮你收外卖服务～ 🍔",
+            "🎉 达标奖励：Anxihua帮你递白板笔服务～ 🖊️",
+            "🏆 达标啦：Fanyang帮你调会议室灯光服务～ 💡",
+            "🎁 达标获得：Lrzliruizhi帮你关窗户服务～ 🪟",
+            "恭喜达标：Xuqiangwei帮你拿文件夹服务～ 📁",
+            "💧 喝水达标：Vickie帮你递护手霜服务～ 🧴",
+            "🎊 达标奖励：Anxihua帮你调耳机音量服务～ 🎧",
+            "🎯 今日达标：Fanyang帮你拿洗手液服务～ 🧴",
+            "🏅 达标啦：Lrzliruizhi帮你递垃圾袋服务～ 🛍️",
+            "💪 达标获得：Xuqiangwei帮你调工位温度服务～ 🌡️",
+            "恭喜达标：Vickie帮你递护颈枕服务～ 😴",
+            "🎉 达标奖励：Anxihua帮你拿眼镜布服务～ 👓",
+            "🏆 达标啦：Fanyang帮你关打印机服务～ 🖨️",
+            "🎁 达标获得：Lrzliruizhi帮你递鼠标垫服务～ 🖱️",
+            "恭喜达标：Xuqiangwei帮你拿键盘膜服务～ ⌨️",
+            "💪 喝水达标：Vickie帮你递保温杯服务～ 🥛",
+            "🎊 达标奖励：Anxihua帮你调显示器角度服务～ 🖥️",
+            "🎯 今日达标：Fanyang帮你递马克杯服务～ ☕",
+            "🏅 达标啦：Lrzliruizhi帮你拿加湿器服务～ 💨",
+            "💪 达标获得：Xuqiangwei帮你开饮水机服务～ 🏺",
+            "恭喜达标：Vickie帮你递湿纸巾服务～ 🧻",
+            "🎉 达标奖励：Anxihua帮你拿数据线服务～ 🔗",
+            "🏆 达标啦：Fanyang帮你递剪刀服务～ ✂️",
+            "🎁 达标获得：Lrzliruizhi帮你拿胶带服务～ 📎",
+            "恭喜达标：Xuqiangwei帮你递订书机服务～ 📌",
+            "💧 喝水达标：Vickie帮你拿纸巾盒服务～ 🧻",
+            "🎊 达标奖励：Anxihua帮你调椅子方向服务～ 🪑",
+            "🎯 今日达标：Fanyang帮你递便签本服务～ 📓",
+            "🏅 达标啦：Lrzliruizhi帮你拿杯子垫服务～ 🍵",
+            "💪 达标获得：Xuqiangwei帮你关抽屉服务～ 🗄️",
+            "恭喜达标：Vickie帮你递鼠标服务～ 🖱️",
+            "🎉 达标奖励：Anxihua帮你拿耳机架服务～ 🎧",
+            "🏆 达标啦：Fanyang帮你递U盘服务～ 💾",
+            "🎁 达标获得：Lrzliruizhi帮你开窗户透气服务～ 🌬️",
+            "恭喜达标：Xuqiangwei帮你调屏幕高度服务～ 🖥️",
+            "💪 喝水达标：Vickie帮你递靠垫服务～ 🛋️",
+            "🎊 达标奖励：Anxihua帮你拿小风扇服务～ 🌀",
+            "🎯 今日达标：Fanyang帮你递清凉油服务～ 🧴",
+            "🏅 达标啦：Lrzliruizhi帮你拿薄荷糖服务～ 🍬",
+            "💪 达标获得：Xuqiangwei帮你开台灯服务～ 💡",
+            "恭喜达标：Vickie帮你递脚凳服务～ 🪵",
+            "🎉 达标奖励：Anxihua帮你调空调风向服务～ ❄️",
+            "🏆 达标啦：Fanyang帮你拿抹布服务～ 🧽",
+            "🎁 达标获得：Lrzliruizhi帮你递垃圾桶服务～ 🗑️",
+            "恭喜达标：Xuqiangwei帮你换垃圾袋服务～ 🛍️",
+            "💧 喝水达标：Vickie帮你递抱枕服务～ 🧸",
+            "🎊 达标奖励：Anxihua帮你调工位整洁度服务～ 🧹",
+            "🎯 今日达标：Fanyang帮你拿茶包服务～ 🍵",
+            "🏅 达标啦：Lrzliruizhi帮你递热水服务～ 🚰",
+            "💪 达标获得：Xuqiangwei帮你开窗换气服务～ 🌬️",
+            "恭喜达标：Vickie帮你拿拖鞋服务～ 👟",
+            "🎉 达标奖励：Anxihua帮你递外套服务～ 🧥"
         ];
 
         let currentMember = null;
@@ -871,30 +1093,54 @@
             document.getElementById('dateHeader').textContent = now.toLocaleDateString('zh-CN', options);
         }
 
-        // 更新进度环
+        // 更新进度环 - 修复：显示当前选中成员的进度，而非汇总
         function updateProgress() {
             const todayData = getTodayData();
-            let total = 0;
-            for (let id in todayData) {
-                total += todayData[id];
-            }
-
-            document.getElementById('totalAmount').textContent = total + 'ml';
-
             const goal = 2000;
-            const percentage = Math.min(total / goal, 1);
-            const circumference = 2 * Math.PI * 85;
-            const offset = circumference * (1 - percentage);
 
-            document.getElementById('progressCircle').style.strokeDashoffset = offset;
-
-            // 更新当前成员积分
             if (currentMember) {
+                // 显示当前选中成员的进度
+                const memberAmount = todayData[currentMember] || 0;
+                document.getElementById('totalAmount').textContent = memberAmount + 'ml';
+                document.getElementById('goalText').textContent = `目标 ${goal}ml`;
+                document.getElementById('goalReachedBanner').classList.toggle('show', memberAmount >= goal);
+
+                const percentage = Math.min(memberAmount / goal, 1);
+                const circumference = 2 * Math.PI * 85;
+                const offset = circumference * (1 - percentage);
+                document.getElementById('progressCircle').style.strokeDashoffset = offset;
+
                 const points = allPoints[currentMember] || 0;
                 document.getElementById('pointsDisplay').textContent = `🏅 积分: ${points}`;
             } else {
+                // 未选择成员时显示提示
+                document.getElementById('totalAmount').textContent = '0ml';
+                document.getElementById('goalText').textContent = '选择成员查看目标';
+                document.getElementById('progressCircle').style.strokeDashoffset = 2 * Math.PI * 85;
+                document.getElementById('goalReachedBanner').classList.remove('show');
                 document.getElementById('pointsDisplay').textContent = '🏅 请选择你的名字';
             }
+        }
+
+        // 抽奖功能
+        let currentReward = '';
+        function openLottery() {
+            if (!currentMember) return;
+
+            // 随机选择奖励
+            const reward = lotteryRewards[Math.floor(Math.random() * lotteryRewards.length)];
+            currentReward = reward;
+            document.getElementById('lotteryReward').textContent = reward;
+            document.getElementById('lotteryModal').classList.add('show');
+        }
+
+        function closeLottery() {
+            document.getElementById('lotteryModal').classList.remove('show');
+        }
+
+        function claimReward() {
+            showToast('🎁 奖励已收录！记得兑换哦～');
+            closeLottery();
         }
 
         // 渲染成员选择
