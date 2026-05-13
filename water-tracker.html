@@ -92,6 +92,15 @@
             color: #999;
         }
 
+        /* 积分显示 */
+        .points-display {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1.1rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
         /* 成员选择 */
         .member-select {
             display: flex;
@@ -129,14 +138,11 @@
             box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
         }
 
-        .member-btn img, .member-btn .avatar {
+        .member-btn .avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             margin-bottom: 4px;
-        }
-
-        .member-btn .avatar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
@@ -246,6 +252,7 @@
             background: #f8f9fa;
             border-radius: 12px;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .ranking-item.highlight {
@@ -278,6 +285,7 @@
             align-items: center;
             justify-content: center;
             font-size: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .ranking-item .name {
@@ -288,6 +296,58 @@
         .ranking-item .amount {
             font-weight: bold;
             font-size: 1.1rem;
+            margin-right: 10px;
+        }
+
+        .ranking-item .points {
+            font-size: 0.8rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .ranking-item.highlight .points {
+            color: white;
+        }
+
+        .encouragement {
+            text-align: center;
+            padding: 10px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        /* 成就系统 */
+        .achievements-section {
+            margin-top: 15px;
+        }
+
+        .achievements-section h3 {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .achievements-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .achievement-badge {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .achievement-badge.locked {
+            background: #e0e0e0;
+            color: #999;
         }
 
         /* 7天趋势图 - 按成员分组 */
@@ -403,6 +463,7 @@
             opacity: 0;
             transition: opacity 0.3s ease;
             z-index: 1000;
+            white-space: nowrap;
         }
 
         .toast.show {
@@ -422,6 +483,18 @@
             text-align: center;
             padding: 40px;
             color: #666;
+        }
+
+        /* MVP 徽章 */
+        .mvp-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 5px;
         }
 
         @media (max-width: 600px) {
@@ -447,6 +520,7 @@
                 <div class="progress-text">
                     <div class="amount" id="totalAmount">0ml</div>
                     <div class="goal">目标 2000ml</div>
+                    <div class="points-display" id="pointsDisplay">🏅 积分: 0</div>
                 </div>
             </div>
         </div>
@@ -472,11 +546,17 @@
         <div class="card ranking-section">
             <h2>🏆 今日排名</h2>
             <div class="ranking-list" id="rankingList"></div>
+            <div class="encouragement" id="encouragement" style="display: none;"></div>
         </div>
 
         <div class="card trend-section">
             <h2>📈 最近7天趋势</h2>
             <div class="chart-container" id="chartContainer"></div>
+        </div>
+
+        <div class="card achievements-section">
+            <h2>🏅 成就系统</h2>
+            <div class="achievements-list" id="achievementsList"></div>
         </div>
     </div>
 
@@ -507,8 +587,32 @@
             { id: 'xuqiangwei', name: 'Xuqiangwei', avatar: '👨‍🎓' }
         ];
 
+        // 鼓励话术库
+        const encouragements = [
+            '💧 喝水是提高效率的秘诀！继续加油！',
+            '🌟 身体是革命的本钱，多喝水才能继续搬砖！',
+            '🚀 还差一点就达标了，加把劲！',
+            '💪 偷偷告诉你：多喝水皮肤会变好哦～',
+            '🎯 今天的目标还没完成，快去倒杯水吧！',
+            '🌈 喝水打卡，健康从我做起！',
+            '⚡ 喝水能提高专注力，快来一杯！'
+        ];
+
+        // 成就定义
+        const achievements = [
+            { id: 'first_day', name: '🎉 初次打卡', desc: '完成第一次打卡', check: (data, memberId) => data[memberId] > 0 },
+            { id: 'reach_goal', name: '🎯 达标达人', desc: '单日喝水达到2000ml', check: (data, memberId) => data[memberId] >= 2000 },
+            { id: 'over_3k', name: '🔥 超量完成', desc: '单日喝水超过3000ml', check: (data, memberId) => data[memberId] >= 3000 },
+            { id: 'streak_3', name: '📆 三连打卡', desc: '连续打卡3天', check: (allData, memberId) => checkStreak(allData, memberId) >= 3 },
+            { id: 'streak_7', name: '🌟 一周坚持', desc: '连续打卡7天', check: (allData, memberId) => checkStreak(allData, memberId) >= 7 },
+            { id: 'total_10k', name: '💧 10升俱乐部', desc: '累计喝水超过10升', check: (allData, memberId) => getTotalAmount(allData, memberId) >= 10000 },
+            { id: 'total_50k', name: '🏆 50升大师', desc: '累计喝水超过50升', check: (allData, memberId) => getTotalAmount(allData, memberId) >= 50000 },
+            { id: 'mvp_once', name: '👑 单日冠军', desc: '获得过至少一次MVP', check: (allData, memberId) => checkMVPCount(allData, memberId) >= 1 }
+        ];
+
         let currentMember = null;
         let allData = {};
+        let allPoints = {};
 
         // 获取今日日期字符串
         function getToday() {
@@ -521,6 +625,57 @@
             return allData[today] || {};
         }
 
+        // 检查连续打卡天数
+        function checkStreak(allData, memberId) {
+            let streak = 0;
+            const today = new Date();
+
+            for (let i = 0; i < 365; i++) {
+                const date = new Date();
+                date.setDate(today.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayData = allData[dateStr] || {};
+
+                if (dayData[memberId] && dayData[memberId] > 0) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        // 获取累计喝水量
+        function getTotalAmount(allData, memberId) {
+            let total = 0;
+            for (let date in allData) {
+                const dayData = allData[date] || {};
+                total += dayData[memberId] || 0;
+            }
+            return total;
+        }
+
+        // 检查MVP次数
+        function checkMVPCount(allData, memberId) {
+            let count = 0;
+            for (let date in allData) {
+                const dayData = allData[date] || {};
+                let max = 0;
+                let mvp = null;
+
+                for (let id in dayData) {
+                    if (dayData[id] > max) {
+                        max = dayData[id];
+                        mvp = id;
+                    }
+                }
+
+                if (mvp === memberId) count++;
+            }
+            return count;
+        }
+
         // 添加喝水量
         function addWater(ml) {
             if (!currentMember) {
@@ -529,6 +684,10 @@
             }
 
             const today = getToday();
+            const todayData = getTodayData();
+            const newAmount = (todayData[currentMember] || 0) + ml;
+
+            // 使用事务添加水量
             const ref = database.ref('waterData/' + today + '/' + currentMember);
 
             ref.transaction(function(currentValue) {
@@ -537,9 +696,75 @@
                 if (error) {
                     showToast('添加失败，请重试！');
                 } else if (committed) {
-                    showToast(`+${ml}ml 记录成功！💪`);
+                    // 计算积分
+                    let pointsEarned = 1; // 每次打卡+1分
+                    let messages = [`+${ml}ml 记录成功！`];
+
+                    // 检查是否达标
+                    if (newAmount >= 2000 && (todayData[currentMember] || 0) < 2000) {
+                        pointsEarned += 5; // 达标额外+5分
+                        messages.push('🎉 恭喜达标！+5积分');
+                    }
+
+                    // 更新积分
+                    const pointsRef = database.ref('points/' + currentMember);
+                    pointsRef.transaction(function(currentPoints) {
+                        return (currentPoints || 0) + pointsEarned;
+                    });
+
+                    messages.forEach((msg, i) => {
+                        setTimeout(() => showToast(msg), i * 1500);
+                    });
+
+                    // 检查并分配MVP（每日喝水最多的）
+                    setTimeout(() => assignMVP(today), 1000);
                 }
             });
+        }
+
+        // 分配每日MVP
+        function assignMVP(date) {
+            const dayData = allData[date] || {};
+            let max = 0;
+            let mvpId = null;
+
+            for (let id in dayData) {
+                if (dayData[id] > max) {
+                    max = dayData[id];
+                    mvpId = id;
+                }
+            }
+
+            if (mvpId && max > 0) {
+                // 检查今天是否已经给过MVP积分
+                const mvpRef = database.ref('dailyMVP/' + date);
+
+                mvpRef.once('value', function(snapshot) {
+                    const existingMVP = snapshot.val();
+
+                    if (existingMVP !== mvpId) {
+                        // 如果MVP换了人，移除之前的MVP积分
+                        if (existingMVP) {
+                            database.ref('points/' + existingMVP).transaction(function(currentPoints) {
+                                return Math.max((currentPoints || 0) - 10, 0);
+                            });
+                        }
+
+                        // 给新MVP加积分
+                        database.ref('points/' + mvpId).transaction(function(currentPoints) {
+                            return (currentPoints || 0) + 10;
+                        });
+
+                        // 记录今天的MVP
+                        mvpRef.set(mvpId);
+
+                        const mvpMember = members.find(m => m.id === mvpId);
+                        if (mvpMember) {
+                            showToast(`🏆 ${mvpMember.name} 今日MVP！+10积分`);
+                        }
+                    }
+                });
+            }
         }
 
         // 显示提示
@@ -547,7 +772,7 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
         // 切换自定义输入
@@ -577,6 +802,7 @@
             renderMembers();
             updateRanking();
             updateChart();
+            updateAchievements();
         }
 
         // 更新日期
@@ -602,6 +828,14 @@
             const offset = circumference * (1 - percentage);
 
             document.getElementById('progressCircle').style.strokeDashoffset = offset;
+
+            // 更新当前成员积分
+            if (currentMember) {
+                const points = allPoints[currentMember] || 0;
+                document.getElementById('pointsDisplay').textContent = `🏅 积分: ${points}`;
+            } else {
+                document.getElementById('pointsDisplay').textContent = '🏅 请选择你的名字';
+            }
         }
 
         // 渲染成员选择
@@ -620,6 +854,7 @@
         function selectMember(id) {
             currentMember = currentMember === id ? null : id;
             renderMembers();
+            updateProgress();
         }
 
         // 更新排名
@@ -627,27 +862,56 @@
             const todayData = getTodayData();
             const rankings = members.map(m => ({
                 ...m,
-                amount: todayData[m.id] || 0
+                amount: todayData[m.id] || 0,
+                points: allPoints[m.id] || 0
             })).sort((a, b) => b.amount - a.amount);
 
             const list = document.getElementById('rankingList');
             list.innerHTML = rankings.map((m, i) => {
                 let rankClass = '';
-                if (i === 0) rankClass = 'gold';
+                if (i === 0 && m.amount > 0) rankClass = 'gold';
                 else if (i === 1) rankClass = 'silver';
                 else if (i === 2) rankClass = 'bronze';
+
+                const isMVP = i === 0 && m.amount > 0;
 
                 return `
                     <div class="ranking-item ${currentMember === m.id ? 'highlight' : ''}">
                         <div class="rank ${rankClass}">${i + 1}</div>
-                        <div class="avatar-small" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="avatar-small">
                             ${m.avatar}
                         </div>
-                        <span class="name">${m.name}</span>
+                        <span class="name">${m.name} ${isMVP ? '<span class="mvp-badge">🏆 MVP</span>' : ''}</span>
                         <span class="amount">${m.amount}ml</span>
+                        <span class="points">🏅 ${m.points}</span>
                     </div>
                 `;
             }).join('');
+
+            // 显示鼓励话术（给喝最少的人）
+            updateEncouragement(rankings);
+        }
+
+        // 更新鼓励话术
+        function updateEncouragement(rankings) {
+            const encouragementEl = document.getElementById('encouragement');
+
+            // 找出喝得最少且有记录的人
+            const withData = rankings.filter(m => m.amount > 0);
+
+            if (withData.length > 0) {
+                const least = withData[withData.length - 1];
+
+                if (least.amount < 2000) {
+                    const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+                    encouragementEl.innerHTML = `${least.avatar} <strong>${least.name}</strong>，加油！${msg}`;
+                    encouragementEl.style.display = 'block';
+                } else {
+                    encouragementEl.style.display = 'none';
+                }
+            } else {
+                encouragementEl.style.display = 'none';
+            }
         }
 
         // 成员颜色配置
@@ -723,13 +987,32 @@
             container.innerHTML = chartHTML;
         }
 
+        // 更新成就系统
+        function updateAchievements() {
+            if (!currentMember) return;
+
+            const todayData = getTodayData();
+            const achievementsList = document.getElementById('achievementsList');
+
+            achievementsList.innerHTML = achievements.map(a => {
+                const unlocked = a.check(allData, currentMember);
+                return `
+                    <div class="achievement-badge ${unlocked ? '' : 'locked'}">
+                        ${a.name}
+                    </div>
+                `;
+            }).join('');
+        }
+
         // 监听 Firebase 数据变化
         database.ref('waterData').on('value', function(snapshot) {
             allData = snapshot.val() || {};
             updateUI();
-        }, function(error) {
-            console.error('Firebase 读取失败:', error);
-            showToast('数据加载失败，请刷新重试');
+        });
+
+        database.ref('points').on('value', function(snapshot) {
+            allPoints = snapshot.val() || {};
+            updateProgress();
         });
 
         // 初始化
