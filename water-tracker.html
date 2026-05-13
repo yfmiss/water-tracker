@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>喝水打卡 💧</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -414,6 +417,13 @@
             margin-bottom: 20px;
         }
 
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
         @media (max-width: 600px) {
             h1 { font-size: 1.8rem; }
             .member-btn { width: 60px; height: 60px; }
@@ -473,6 +483,21 @@
     <div class="toast" id="toast"></div>
 
     <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyD0fAMKwhUkPny5kMONvHlnLsyqcjF27qk",
+            authDomain: "water-tracker-ab90f.firebaseapp.com",
+            databaseURL: "https://water-tracker-ab90f-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "water-tracker-ab90f",
+            storageBucket: "water-tracker-ab90f.firebasestorage.app",
+            messagingSenderId: "663616463546",
+            appId: "1:663616463546:web:e13cc1c962341320f8d883"
+        };
+
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // 成员配置
         const members = [
             { id: 'vickieyanwenjie', name: 'Vickie', avatar: '👩‍💼' },
@@ -483,35 +508,17 @@
         ];
 
         let currentMember = null;
+        let allData = {};
 
         // 获取今日日期字符串
         function getToday() {
             return new Date().toISOString().split('T')[0];
         }
 
-        // 获取存储数据
-        function getData() {
-            const data = localStorage.getItem('waterData');
-            return data ? JSON.parse(data) : {};
-        }
-
-        // 保存数据
-        function saveData(data) {
-            localStorage.setItem('waterData', JSON.stringify(data));
-        }
-
         // 获取今日数据
         function getTodayData() {
-            const data = getData();
             const today = getToday();
-            return data[today] || {};
-        }
-
-        // 保存今日数据
-        function saveTodayData(todayData) {
-            const data = getData();
-            data[getToday()] = todayData;
-            saveData(data);
+            return allData[today] || {};
         }
 
         // 添加喝水量
@@ -521,12 +528,18 @@
                 return;
             }
 
-            const todayData = getTodayData();
-            todayData[currentMember] = (todayData[currentMember] || 0) + ml;
-            saveTodayData(todayData);
+            const today = getToday();
+            const ref = database.ref('waterData/' + today + '/' + currentMember);
 
-            showToast(`+${ml}ml 记录成功！💪`);
-            updateUI();
+            ref.transaction(function(currentValue) {
+                return (currentValue || 0) + ml;
+            }, function(error, committed, snapshot) {
+                if (error) {
+                    showToast('添加失败，请重试！');
+                } else if (committed) {
+                    showToast(`+${ml}ml 记录成功！💪`);
+                }
+            });
         }
 
         // 显示提示
@@ -648,7 +661,6 @@
 
         // 更新趋势图 - 按成员分组
         function updateChart() {
-            const data = getData();
             const container = document.getElementById('chartContainer');
             const maxAmount = 2000;
             const days = [];
@@ -658,7 +670,7 @@
                 const date = new Date();
                 date.setDate(date.getDate() - i);
                 const dateStr = date.toISOString().split('T')[0];
-                const dayData = data[dateStr] || {};
+                const dayData = allData[dateStr] || {};
 
                 days.push({
                     label: i === 0 ? '今天' : (date.getMonth() + 1) + '/' + date.getDate(),
@@ -711,20 +723,25 @@
             container.innerHTML = chartHTML;
         }
 
+        // 监听 Firebase 数据变化
+        database.ref('waterData').on('value', function(snapshot) {
+            allData = snapshot.val() || {};
+            updateUI();
+        }, function(error) {
+            console.error('Firebase 读取失败:', error);
+            showToast('数据加载失败，请刷新重试');
+        });
+
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            updateUI();
+            updateDate();
+            renderMembers();
 
             // 回车键添加自定义
             document.getElementById('customAmount').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') addCustomWater();
             });
         });
-
-        // 每天重置逻辑（确保新的一天数据独立）
-        setInterval(() => {
-            updateUI();
-        }, 60000);
     </script>
 </body>
 </html>
